@@ -1,5 +1,6 @@
 import re
 import streamlit as st
+import streamlit.components.v1 as components
 from anthropic import Anthropic
 from datetime import datetime
 import smtplib
@@ -347,3 +348,15 @@ if not st.session_state.complete:
         st.rerun()
 else:
     st.info("This conversation is complete. Thank you for your time!", icon="✅")
+
+# ── Auto-scroll to bottom once conversation completes ─────────────────────────
+if st.session_state.complete:
+    components.html("""
+    <script>
+        // Streamlit renders inside an iframe; window.parent is the real page.
+        // section[data-testid="stMain"] is the scrollable container in Streamlit ≥1.30.
+        var el = window.parent.document.querySelector('section[data-testid="stMain"]');
+        if (!el) el = window.parent.document.querySelector('.main');
+        if (el) el.scrollTop = el.scrollHeight;
+    </script>
+    """, height=0)
