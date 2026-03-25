@@ -268,15 +268,25 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Auto-start: trigger opening message on first load ─────────────────────────
+# ── Start button: only call API when user explicitly begins ───────────────────
+# This prevents Streamlit warmup pings from triggering API calls.
 if not st.session_state.messages:
-    with st.spinner(""):
-        opening = get_response([{"role": "user", "content": TRIGGER}])
-    st.session_state.messages = [
-        {"role": "user",      "content": TRIGGER},
-        {"role": "assistant", "content": opening},
-    ]
-    st.rerun()
+    st.markdown(
+        "<p style='text-align:center; color:#666; margin: 1rem 0 1.5rem;'>"
+        "This private conversation takes about 15–20 minutes. "
+        "You can skip any question at any time.</p>",
+        unsafe_allow_html=True
+    )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Begin →", type="primary", use_container_width=True):
+            with st.spinner(""):
+                opening = get_response([{"role": "user", "content": TRIGGER}])
+            st.session_state.messages = [
+                {"role": "user",      "content": TRIGGER},
+                {"role": "assistant", "content": opening},
+            ]
+            st.rerun()
 
 # ── Render conversation ────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
