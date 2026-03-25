@@ -197,7 +197,13 @@ def get_response(messages: list) -> str:
     result = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
-        system=SYSTEM_PROMPT,
+        system=[
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=messages
     )
     return result.content[0].text
