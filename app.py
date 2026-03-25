@@ -197,13 +197,7 @@ def get_response(messages: list) -> str:
     result = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
-        system=[
-            {
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
+        system=SYSTEM_PROMPT,
         messages=messages
     )
     return result.content[0].text
@@ -356,7 +350,8 @@ else:
     st.info("This conversation is complete. Thank you for your time!", icon="✅")
 
 # ── Auto-scroll to bottom once conversation completes ─────────────────────────
-if st.session_state.complete:
+# Guard with session flag so it only fires once, not on every rerun
+if st.session_state.complete and not st.session_state.get("scrolled_to_bottom"):
     components.html("""
     <script>
         // Streamlit renders inside an iframe; window.parent is the real page.
@@ -366,3 +361,4 @@ if st.session_state.complete:
         if (el) el.scrollTop = el.scrollHeight;
     </script>
     """, height=0)
+    st.session_state.scrolled_to_bottom = True
