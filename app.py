@@ -253,12 +253,14 @@ def send_summary_email(summary: str) -> bool:
         return False  # Fail silently — the download button is the fallback
 
 # ── Session state init ─────────────────────────────────────────────────────────
-if "messages"  not in st.session_state:
-    st.session_state.messages  = []
-if "summary"   not in st.session_state:
-    st.session_state.summary   = None
-if "complete"  not in st.session_state:
-    st.session_state.complete  = False
+if "messages"        not in st.session_state:
+    st.session_state.messages        = []
+if "summary"         not in st.session_state:
+    st.session_state.summary         = None
+if "complete"        not in st.session_state:
+    st.session_state.complete        = False
+if "pending_response" not in st.session_state:
+    st.session_state.pending_response = False
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -341,20 +343,25 @@ if st.session_state.summary:
 
 # ── Chat input ─────────────────────────────────────────────────────────────────
 if not st.session_state.complete:
-    if user_input := st.chat_input("Type your response here…"):
-        st.session_state.messages.append({"role": "user", "content": user_input})
-
+    # Process pending API response BEFORE rendering chat input.
+    # This ensures the API call happens immediately after the user submits,
+    # not on a subsequent passive rerun.
+    if st.session_state.pending_response:
+        st.session_state.pending_response = False
         with st.spinner(""):
             reply = get_response(st.session_state.messages)
-
         summary = extract_summary(reply)
         if summary:
             _ts = datetime.now().strftime("%d %b %Y  %H:%M")
             summary = re.sub(r"Generated:.*", f"Generated: {_ts}", summary)
             st.session_state.summary  = summary
             st.session_state.complete = True
-
         st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.rerun()
+
+    if user_input := st.chat_input("Type your response here…"):
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        st.session_state.pending_response = True  # Flag for next rerun
         st.rerun()
 else:
     st.info("This conversation is complete. Thank you for your time!", icon="✅")
