@@ -15,6 +15,21 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ── URL parameter guard ────────────────────────────────────────────────────────
+# Requires ?org=OrganisationName in the URL — stops immediately if missing.
+# This prevents Streamlit warmup pings and featured profile previews
+# from triggering API calls when no real user is present.
+_params = st.query_params
+ORG_NAME = _params.get("org", "").strip()
+if not ORG_NAME:
+    st.error(
+        "This link appears to be incomplete. "
+        "Please contact Tien-Ti for the correct link.",
+        icon="🔗",
+    )
+    st.stop()
+
+
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -151,6 +166,7 @@ When the conversation is complete, produce the summary in EXACTLY this format, p
 
 ---SUMMARY---
 AI ACTIVATOR — PRE-PROGRAM PARTICIPANT BRIEF
+Organisation: {ORG_NAME}
 Generated: [date and time]
 
 NAME: [name, or "Anonymous — participant preferred not to share"]
@@ -192,12 +208,20 @@ def get_client():
     return Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 
-def get_response(messages: list) -> str:
+def get_response(messages: list, org_name: str = "") -> str:
     client = get_client()
+    # Inject org name into system prompt and use prompt caching
+    system = SYSTEM_PROMPT.replace("{ORG_NAME}", org_name) if org_name else SYSTEM_PROMPT
     result = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
-        system=SYSTEM_PROMPT,
+        system=[
+            {
+                "type": "text",
+                "text": system,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=messages
     )
     return result.content[0].text
@@ -236,7 +260,7 @@ def send_summary_email(summary: str) -> bool:
         recipient = st.secrets.get("EMAIL_RECIPIENT", "tientimak@live.com")
 
         timestamp = datetime.now().strftime("%d %b %Y  %H:%M")
-        subject   = f"AI Activator — Pre-Program Diagnostic  ·  {timestamp}"
+        subject   = f"AI Activator — Pre-Program Diagnostic  ·  {ORG_NAME}  ·  {timestamp}"
 
         msg = MIMEMultipart()
         msg["From"]    = sender
@@ -263,10 +287,14 @@ if "pending_response" not in st.session_state:
     st.session_state.pending_response = False
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div class="diagnostic-header">
     <h2>AI Activator &mdash; Pre-Program Diagnostic</h2>
     <p>A private conversation to help Tien-Ti personalise your program &nbsp;·&nbsp; Approx. 15&ndash;20 minutes &nbsp;·&nbsp; You can skip any question</p>
+    <div style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);
+                color:white;padding:0.25rem 0.9rem;border-radius:20px;font-size:0.85rem;margin-top:0.6rem;">
+        📋 {ORG_NAME}
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -283,7 +311,7 @@ if not st.session_state.messages:
     with col2:
         if st.button("Begin →", type="primary", use_container_width=True):
             with st.spinner(""):
-                opening = get_response([{"role": "user", "content": TRIGGER}])
+                opening = get_response([{"role": "user", "content": TRIGGER}], ORG_NAME)
             st.session_state.messages = [
                 {"role": "user",      "content": TRIGGER},
                 {"role": "assistant", "content": opening},
@@ -349,7 +377,7 @@ if not st.session_state.complete:
     if st.session_state.pending_response:
         st.session_state.pending_response = False
         with st.spinner(""):
-            reply = get_response(st.session_state.messages)
+            reply = get_response(st.session_state.messages, ORG_NAME)
         summary = extract_summary(reply)
         if summary:
             _ts = datetime.now().strftime("%d %b %Y  %H:%M")
