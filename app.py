@@ -255,9 +255,9 @@ def send_summary_email(summary: str) -> bool:
     the summary is generated.
     """
     try:
-        sender    = st.secrets["EMAIL_SENDER"]    # e.g. aiactivator.notify@gmail.com
-        password  = st.secrets["EMAIL_PASSWORD"]  # Gmail App Password
-        recipient = st.secrets.get("EMAIL_RECIPIENT", "tientimak@live.com")
+        sender    = st.secrets["EMAIL_SENDER"]
+        password  = st.secrets["EMAIL_PASSWORD"]
+        recipient = st.secrets["EMAIL_RECIPIENT"]
 
         timestamp = datetime.now().strftime("%d %b %Y  %H:%M")
         subject   = f"AI Activator — Pre-Program Diagnostic  ·  {ORG_NAME}  ·  {timestamp}"
@@ -274,7 +274,7 @@ def send_summary_email(summary: str) -> bool:
         return True
 
     except Exception:
-        return False  # Fail silently — the download button is the fallback
+        return False  # Caller handles user-facing warning
 
 # ── Session state init ─────────────────────────────────────────────────────────
 if "messages"        not in st.session_state:
@@ -361,11 +361,13 @@ if st.session_state.summary:
             "This download is just for your own reference."
         )
 
-    # Fallback notice if email failed (so Tien-Ti knows to follow up)
+    # Fallback notice if email failed
     if not st.session_state.get("email_sent"):
+        contact_email = st.secrets.get("EMAIL_RECIPIENT", "")
+        contact_str = f" at {contact_email}" if contact_email else ""
         st.warning(
-            "Note: automatic delivery to Tien-Ti encountered an issue. "
-            "Please use the download above and send it to tientimak@live.com directly.",
+            f"Something went wrong sending your results automatically. "
+            f"Please contact Tien-Ti{contact_str} to let him know.",
             icon="⚠️"
         )
 
