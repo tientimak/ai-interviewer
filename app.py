@@ -7,7 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# ── Page config ────────────────────────────────────────────────────────────────
+# ── Page config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AI Activator — Pre-Program Diagnostic",
     page_icon="💬",
@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ── URL parameter guard ────────────────────────────────────────────────────────
+# ── URL parameter guard ──────────────────────────────────────────────────────────────────
 _params = st.query_params
 ORG_NAME = _params.get("org", "").strip()
 if not ORG_NAME:
@@ -27,7 +27,7 @@ if not ORG_NAME:
     st.stop()
 
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
+# ── Custom CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     #MainMenu, footer, header { visibility: hidden; }
@@ -83,7 +83,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── System prompt ──────────────────────────────────────────────────────────────
+# ── System prompt ────────────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a warm, professional pre-session diagnostic assistant created by
 Tien-Ti Mak (he/him) to help him prepare for a Claude training session
 with the Pemba Capital Partners team. Your job is to have a genuine,
@@ -218,7 +218,7 @@ QUESTIONS SKIPPED: [list, or "None"]
 ---END SUMMARY---
 """
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_client():
     return Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
@@ -259,7 +259,7 @@ def visible_text(text: str) -> str:
 TRIGGER = "__BEGIN__"
 
 
-# ── Email ──────────────────────────────────────────────────────────────────────
+# ── Email ──────────────────────────────────────────────────────────────────────────────
 def send_summary_email(summary: str) -> bool:
     try:
         sender    = st.secrets["EMAIL_SENDER"]
@@ -284,7 +284,7 @@ def send_summary_email(summary: str) -> bool:
         return False
 
 
-# ── Session state init ─────────────────────────────────────────────────────────
+# ── Session state init ───────────────────────────────────────────────────────────────────────
 if "messages"         not in st.session_state:
     st.session_state.messages         = []
 if "summary"          not in st.session_state:
@@ -294,7 +294,7 @@ if "complete"         not in st.session_state:
 if "pending_response" not in st.session_state:
     st.session_state.pending_response = False
 
-# ── Header ─────────────────────────────────────────────────────────────────────
+# ── Header ─────────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="diagnostic-header">
     <h2>AI Activator &mdash; Pre-Program Diagnostic</h2>
@@ -306,14 +306,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Start button ───────────────────────────────────────────────────────────────
+# ── Start button ───────────────────────────────────────────────────────────────────────────
 if not st.session_state.messages:
-    st.markdown(
-        "<p style='text-align:center; color:#666; margin: 1rem 0 1.5rem;'>"
-        "This private conversation takes about 5–10 minutes. "
-        "You can skip any question at any time.</p>",
-        unsafe_allow_html=True
-    )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("Begin →", type="primary", use_container_width=True):
@@ -325,7 +319,7 @@ if not st.session_state.messages:
             ]
             st.rerun()
 
-# ── Render conversation ────────────────────────────────────────────────────────
+# ── Render conversation ─────────────────────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
     if msg["content"] == TRIGGER:
         continue
@@ -337,7 +331,7 @@ for msg in st.session_state.messages:
     with st.chat_message(role, avatar=avatar):
         st.write(display)
 
-# ── Summary panel ──────────────────────────────────────────────────────────────
+# ── Summary panel ────────────────────────────────────────────────────────────────────────────
 if st.session_state.summary:
     if not st.session_state.get("email_sent"):
         st.session_state.email_sent = send_summary_email(st.session_state.summary)
@@ -374,8 +368,8 @@ if st.session_state.summary:
             icon="⚠️"
         )
 
-# ── Chat input ─────────────────────────────────────────────────────────────────
-if not st.session_state.complete:
+# ── Chat input ───────────────────────────────────────────────────────────────────────────────
+if st.session_state.messages and not st.session_state.complete:
     if st.session_state.pending_response:
         st.session_state.pending_response = False
         with st.spinner(""):
@@ -393,10 +387,10 @@ if not st.session_state.complete:
         st.session_state.messages.append({"role": "user", "content": user_input})
         st.session_state.pending_response = True
         st.rerun()
-else:
+elif st.session_state.complete:
     st.info("This conversation is complete. Thank you for your time!", icon="✅")
 
-# ── Auto-scroll ────────────────────────────────────────────────────────────────
+# ── Auto-scroll ──────────────────────────────────────────────────────────────────────────────
 if st.session_state.complete and not st.session_state.get("scrolled_to_bottom"):
     components.html("""
     <script>
